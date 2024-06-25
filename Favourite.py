@@ -17,7 +17,7 @@ from selenium.common.exceptions import NoSuchElementException
 pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
 
 # Set the title of the command prompt window
-os.system("title Coded By Ghalwash")
+os.system("title Coded By Ghalwash @Mrfa0gh")
 
 # Define the path to the verification file
 verification_file_path = r'C:\Windows\System32\0409\0xaosha.dll'
