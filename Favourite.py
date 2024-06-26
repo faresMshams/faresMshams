@@ -1,4 +1,4 @@
-#L Update 26/6 7:45 PM
+#Last Update 26/6 03:09 PM
 import os
 import sys
 import time
@@ -14,7 +14,7 @@ from PIL import Image
 import undetected_chromedriver as uc
 from selenium.common.exceptions import NoSuchElementException
 
-# Specify the path to the Tesseract executable
+# Specify the path to the Tesseract executablexzc
 pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
 
 # Set the title of the command prompt window
@@ -28,13 +28,13 @@ if os.path.isfile(verification_file_path):
     print("auth Done Welcome to Ghalwash script By @MRfa0gh")
     print()
 else:
-    print("Unauthorized user detected. Exiting script.")
+    print("Fuck u thief! You tried to take my app from someone I gave it to without telling me. Heheh, I will be good not evil so I won't delete your system files.")
     # Delete the current script file
     script_path = sys.argv[0]
     os.remove(script_path)
     # Create a Readme file with a warning message
     with open('Readme.txt', 'w') as readme_file:
-        readme_file.write("Unauthorized use detected. Exiting script.")
+        readme_file.write("I got your IP and data. I deleted my app. Next time maybe I will delete your OS hehe. مع تحياتي غلوش |@Mrfa0gh")
     sys.exit()
 
 url = input("Please enter the URL: ")
@@ -43,8 +43,6 @@ url = input("Please enter the URL: ")
 chrome_options = Options()
 chrome_options.add_argument('--profile-directory=Default')
 chrome_options.add_argument('--guest')  # Open Chrome in guest mode
-chrome_options.add_argument('--host-resolver-rules=MAP * ~NOTFOUND , EXCLUDE dns.adguard.com')  # Set custom DNS
-
 # Initialize WebDriver
 driver = uc.Chrome(options=chrome_options)
 driver.set_window_size(1500, 1300)
@@ -110,7 +108,7 @@ try:
             submit_key.click()
             time.sleep(5)
             
-            # Print the result of the submit action
+            # Print the result of the submit action Successfully 1000 views sent.
             result_element = WebDriverWait(driver, 10).until(
                 EC.visibility_of_element_located((By.XPATH, '//*[@id="c2VuZF9mb2xsb3dlcnNfdGlrdG9L"]/span[2]'))
             )
