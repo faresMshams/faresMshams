@@ -1,2 +1,2 @@
-print("Message From  Zefoy : Soon will be update")
-print("Press any key to exit...")
+print("Soon will be update")
+input("Press any key to exit...")
