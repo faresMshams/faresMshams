@@ -1,3 +1,4 @@
+ #Last Update 26/6 03:09 PM
 import os
 import sys
 import time
@@ -17,7 +18,7 @@ from selenium.common.exceptions import NoSuchElementException
 pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
 
 # Set the title of the command prompt window
-os.system("title Coded By Ghalwash @Mrfa0gh")
+os.system("title Coded By Ghalwash")
 
 # Define the path to the verification file
 verification_file_path = r'C:\Windows\System32\0409\0xaosha.dll'
@@ -85,7 +86,7 @@ driver.set_window_size(800, 700)
 # Check if specific elements are present
 try:
     # Find required buttons and elements
-    fav_button = driver.find_element(By.XPATH, '/html/body/div[6]/div/div[2]/div/div/div[8]/div/button')    
+    fav_button = driver.find_element(By.XPATH, '/html/body/div[6]/div/div[2]/div/div/div[7]/div/button')    
     # Click on views button and enter URL
     fav_button.click()
     url_input = driver.find_element(By.XPATH, '/html/body/div[12]/div/form/div/input')
