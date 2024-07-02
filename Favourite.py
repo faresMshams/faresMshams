@@ -81,14 +81,15 @@ input_element.send_keys(first_word)
 input_element.submit()
 
 time.sleep(1.25)
-driver.set_window_size(800, 700)
+
 
 # Check if specific elements are present
 try:
     # Find required buttons and elements
-    fav_button = driver.find_element(By.XPATH, '/html/body/div[6]/div/div[2]/div/div/div[7]/div/button')    
+    fav_button = driver.find_element(By.XPATH, '/html/body/div[6]/div/div[2]/div/div/div[8]/div/button')    
     # Click on views button and enter URL
     fav_button.click()
+    driver.set_window_size(800, 700)
     url_input = driver.find_element(By.XPATH, '/html/body/div[12]/div/form/div/input')
     url_input.send_keys(url)
     print('URL entered')
