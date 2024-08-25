@@ -1,3 +1,2 @@
-import time
-print('Script closed 10')
-time.sleep(10)
+print('Script closed ')
+input("Press enter key to close ...")
