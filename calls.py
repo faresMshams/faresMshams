@@ -2,14 +2,6 @@ import requests
 import json
 import time
 
-print('''
-Coded By Ghalwash
-Send Calls only spam
-IG-FB-TM-Github user
-@Mrfa0gh
-'''
-)
-
 url = "https://31.171.171.90/api/phone-numbers/auth-flash-call"
 phone_number = input("Enter Your Number (with +2): ")
 
