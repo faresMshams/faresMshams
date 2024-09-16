@@ -1,6 +1,5 @@
 import requests
 import threading
-
 def get_valid_phone_number():
     while True:
         phone = input("Phone Number: ")
