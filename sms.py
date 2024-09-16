@@ -3,7 +3,6 @@ import threading
 
 def get_valid_phone_number():
     while True:
-        print('Dev By Ghalwash')
         phone = input("Phone Number: ")
         if phone.startswith(('010', '011', '012', '015')) and len(phone) == 11:
             return phone
