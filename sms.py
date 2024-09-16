@@ -1,17 +1,17 @@
-#final
+#fi
 import requests
 import threading
 
 def get_valid_phone_number():
     while True:
         try:
-            phone = input("Phone Number: ")
+            phone = input("Phone Number: 01xxxxxxxxx ")
             if phone.startswith(('010', '011', '012', '015')) and len(phone) == 11:
                 return phone
             else:
                 print("Error: Invalid phone number. Please try again.")
         except Exception as e:
-            print(f"An error occurred while validating phone number: {e}")
+            print(f"An error occurred while validating phone number:")
 
 def get_request_count():
     while True:
