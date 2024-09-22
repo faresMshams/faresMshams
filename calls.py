@@ -1,4 +1,4 @@
-##H
+#C
 import requests
 import json
 import time
@@ -22,14 +22,19 @@ while True:
     response = requests.post(url, data=payload, headers=headers)
 
     # تحويل الاستجابة إلى JSON
-    response_data = response.json()
+    try:
+        response_data = response.json()
+    except json.JSONDecodeError:
+        print("Error: wait 8 sec")
+        time.sleep(8)
+        continue
 
     # التحقق من الاستجابة
     if response_data.get("allow") == True:
         print("Done, sent 1 call next in 8 sec")
     elif response_data.get("type") == "Error" and response_data.get("details") == "too many requests":
-        print("Error: Call didnt sent (limit on number wait or come back again after 1 minutes)")
+        print("Error: Call not  sent wait 8 sec (or number unavailable)")
     else:
-        pass
+        print("Received an unexpected Error Wait 8 Sec")
 
     time.sleep(8)
