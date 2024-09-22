@@ -25,7 +25,7 @@ def menu():
 = ╚══════╝╚═╝     ╚═╝  ╚═╝╚═╝     ╚═╝╚═╝     ╚═╝╚══════╝╚═╝  ╚═╝ =
 ==================================================================
 
-            Dev By Ghalwash User : @Mrfa0gh
+            Dev By Ghalwash User : @Mrfa0gh ##
     ''')
     choice = input("        Choose an option (1 spam Calls or 2 spam SMS): =>> ")
     return choice
