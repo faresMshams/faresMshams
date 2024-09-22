@@ -25,16 +25,14 @@ while True:
     try:
         response_data = response.json()
     except json.JSONDecodeError:
-        print("Error: wait 4 sec")
-        time.sleep(4)
         continue
 
     # التحقق من الاستجابة
     if response_data.get("allow") == True:
-        print("Done, sent 1 call next in 8 sec")
+        print("Done, sent 1 call next in 3 sec")
     elif response_data.get("type") == "Error" and response_data.get("details") == "too many requests":
-        print("Error: Call not  sent wait 8 sec (or number unavailable)")
+        print("Error: Call not  sent wait 3 sec (or number unavailable)")
     else:
-        print("Received an unexpected Error Wait 8 Sec")
+        print("Received an unexpected Error Wait 3 Sec")
 
-    time.sleep(8)
+    time.sleep(3)
