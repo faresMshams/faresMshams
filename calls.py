@@ -1,4 +1,4 @@
-#Cx
+#Cxccccccccccccccccccc
 import requests
 import json
 import time
@@ -29,7 +29,7 @@ while True:
 
     # التحقق من الاستجابة
     if response_data.get("allow") == True:
-        print("Done, sent 1 call next in 3 sec")
+        print("Done, sent call next in 3 sec")
     elif response_data.get("type") == "Error" and response_data.get("details") == "too many requests":
         print("Error: Call not  sent wait 3 sec (or number unavailable)")
     else:
