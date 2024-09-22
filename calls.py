@@ -1,4 +1,4 @@
-#C
+#Cx
 import requests
 import json
 import time
@@ -25,8 +25,8 @@ while True:
     try:
         response_data = response.json()
     except json.JSONDecodeError:
-        print("Error: wait 8 sec")
-        time.sleep(8)
+        print("Error: wait 4 sec")
+        time.sleep(4)
         continue
 
     # التحقق من الاستجابة
