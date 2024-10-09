@@ -7,36 +7,39 @@ from threading import Thread, Event
 import socket  # استيراد مكتبة socket للحصول على عنوان IP
 from tkinter import messagebox
 print('''
-Gui Talabat By Ghalwash @Mrfa0gh
-Trial App 
-Realised 08/10/2024 5:05 PM
-Untill 10/10
-if shared will stop auto
-if selled will stop auto
+[!] Update Date 9/10/2024 6.45 PM
+[!] Gui Talabat By Ghalwash @Mrfa0gh
+[!] Trial App 
+[!] Realised 08/10/2024 5:05 PM
+[!] linked with sahar.gameel.93@gmail.com to recive voucher
+if shared / salled will stop auto
+[!] All copyrights to Ghalwash @Mrfa0gh
 ''')
 
 # إعداد البيانات
 url = "https://loyalty.talabat.com/api/v3/me/promo-codes/redeem"
 headers = {
     'Host': 'loyalty.talabat.com',
-    'newrelic': '{"v":[0,2],"d":{"d.ty":"Mobile","d.ac":"","d.ap":"","d.tr":"7f94ebd9261a477fa4167ffc09cc244f","d.id":"3517f8e70c404d23","d.ti":1728330743117}}',
-    'tracestate': '@nr=0-2---3517f8e70c404d23----1728330743117',
-    'traceparent': '00-7f94ebd9261a477fa4167ffc09cc244f-3517f8e70c404d23-00',
+    'newrelic': 'eyJ2IjpbMCwyXSwiZCI6eyJkLnR5IjoiTW9iaWxlIiwiZC5hYyI6IjkzODk1OCIsImQuYXAiOiI0MTQ0NjE2MzgiLCJkLnRyIjoiNGI0ZWI1NDc2OWM3NDAyNDk2ZTI2MzllYzFlYTZjZTIiLCJkLmlkIjoiZDM0OTIyZGY1MzFkNGU4OCIsImQudGkiOjE3Mjg0ODc2NDc4NDR9fQ==',
+    'tracestate': '@nr=0-2-938958-414461638-d34922df531d4e88----1728487647844',
+    'traceparent': '00-4b4eb54769c7402496e2639ec1ea6ce2-d34922df531d4e88-00',
     'accept-language': 'en-US',
     'x-device-source': '6',
     'brandtype': '1',
     'appbrand': '1',
-    'x-perseussessionid': '1728330608749.1370958624.sjnubreaif',
+    'x-perseussessionid': '1728487559850.3718256490.hjibxglwsc',
     'x-perseusclientid': '1728330609067.5137469820.haspqlgrjm',
     'x-device-version': '9.74',
     'x-device-id': '6aa217de63c433f0',
-    'authorization': 'bearer y31y0_PsnRvOgJoX7hIbgljCEMTZc2clixIo_css-rm2Bz4JHOXC7YCeooiqdfgWVCqE8VSF6SllDxyRT-2RoK-VDhdXYHx-bS41dZyBEXdSYsJ-HLHOd9CiRhEQDzQPnork_TMwORlJrbBkh-B0TZ81ItiCDE4b3435T8LOSOyDr2T38TmCsRmNAGsDCONyL28D8j2Ioil0mm14M0K2Saeg8LGNfwKt4gjcC25HjKfg55esMEy4qOlLPVKGthKwleGpZXkygdS-Ik6BN46dkcnhYlTPe3QzWJPyo8f45btQdM3BHg1fsLRnXD1oNzIoC3sC31TUDoYgkMEJx_q2tIaaB53x86bp50SmkfcPDxe6uSURMC5Gldc7CwOZcm3H09cBLiR5QWcqHDz3TImMsIuMwbFiVYvAEIe1Y4ENZRhsQGOxna_ufUYz5e7FmvhHRIs_eJxH94US4IAQJSHu_CZ3q6GrvD7ULobAFHHp_vlqA0XQlVJhE0RBmft0pHD7qD2xWoRdQr7reKGtM_mVNrpWUfo12sXz9VXPNvRKVIG_ti0ijlSv4Sl6y73pOcqNw6um97KOglyxYZ6lWzT_cQ8KI_IRts3yfx9_Ki6CWwSR7TS9T2bVNbIEf6qR21CZdtZ5FP_NC9XwzLji26Du3nagCFY',
+    'authorization': 'bearer tnqrYB2T38b3D3vy6BU01uXoL8EO1H0y7ck7kLA4qHVcwSjIBA5J3E0M_gXXt6fxirByGoR--uujOGJqovE-WqusoZHQgTSkXAZrjVz_bWFCO7xBa3h6GWGk4TfyXOgGDUDa-e93898kNyrFHbyC0j4nF-EuSTIK4YlOLsNjB_noHbKuUvbWOlxTIdqhEpD5p3DVzKHicgMhPrfyRXCpMRqV4SpNSN2whZOkkBkgWeYg1hDTT4YLEoHQphx_94cHp2ADvUm9zUpTg7vnFV7ajrAPhMNuumsC_FSN3j76WlMeK_l4snndmEcyJbfzbdtTmldDf-m2uSI52tIy7VgVTV4SJl84N03l9pH8i6tesvB2fbvPOQdlhvd1dfdSxr3n2AFpnZXoEpp7wcWpX7HQ0OJlnhH4XLCjP1iUgDlbNlAVwkdr_SPUOoUFFJsQZocz8gIg1--atvfqNrh2AT_rG76_gisvN27OtUyah715Mvc6WVUAHDPUNht5vL8_zYeAE32JjwRQGUxCG_YLoGioJdFePYqGLJcowwQe0yWofuZA0j62Fbruhb65pi-3vb7cP8XPRYOuoKgdg2fykHjhs6ObP78',
     'x-talabat-android-installation-path': 'L2RhdGEvdXNlci8wL2NvbS50YWxhYmF0',
     'x-talabat-android-package-name': 'com.talabat',
     'content-type': 'application/json; charset=UTF-8',
     'accept-encoding': 'gzip',
     'user-agent': 'okhttp/4.9.2'
 }
+
+
 
 
 class PromoCodeChecker:
