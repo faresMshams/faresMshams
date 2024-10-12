@@ -21,8 +21,7 @@ all copyrights to ghalwash
 جميع النسخ المجانيه مغلقه للوقت الراهن  
 ''')
 input("Press Enter to exit...")  # الانتظار حتى الضغط على Enter
-sys.exit()  # إنهاء البرنامج
-
+'''
 # إعداد البيانات
 url = "https://loyalty.talabat.com/api/v3/me/promo-codes/redeem"
 headers = {
@@ -264,3 +263,4 @@ promo_checker = PromoCodeChecker()
 
 # تشغيل التطبيق
 root.mainloop()
+'''
