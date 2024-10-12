@@ -4,10 +4,9 @@ import string
 import time
 import tkinter as tk
 from threading import Thread, Event
-import socket
+import socket  # استيراد مكتبة socket للحصول على عنوان IP
+import sys
 from tkinter import messagebox
-import sys  # استيراد مكتبة sys لإنهاء البرنامج
-
 print('''  
 hello  
 this is talabat exe file to let u get voucher  
@@ -21,24 +20,8 @@ all copyrights to ghalwash
 سيتم ايقاف البرنامج في حاله اكتشاف ذلك  
 جميع النسخ المجانيه مغلقه للوقت الراهن  
 ''')
-
 input("Press Enter to exit...")  # الانتظار حتى الضغط على Enter
 sys.exit()  # إنهاء البرنامج
-
-import requests
-import random
-import string
-import time
-import tkinter as tk
-from threading import Thread, Event
-import socket  # استيراد مكتبة socket للحصول على عنوان IP
-from tkinter import messagebox
-print('''
-[!] Update Date 9/10/2024 6.45 PM
-[!] Gui Talabat By Ghalwash @Mrfa0gh
-[!] Realised 08/10/2024 5:05 PM
-[!] All copyrights to Ghalwash @Mrfa0gh
-''')
 
 # إعداد البيانات
 url = "https://loyalty.talabat.com/api/v3/me/promo-codes/redeem"
@@ -222,14 +205,6 @@ def get_ip():
 ip_label = tk.Label(root, text=f"IP: {get_ip()}")
 ip_label.pack(pady=5)
 
-'''def update_ip():
-    ip = get_ip()
-    ip_label.config(text=f"IP: {ip}")
-    root.after(10000, update_ip)  # every 10 sec
-
-# استدعاء تحديث IP عند بدء التطبيق
-update_ip()
-'''
 # أزرار البدء والإيقاف والتوقف المؤقت
 button_frame = tk.Frame(root)
 button_frame.pack(pady=5)
@@ -288,4 +263,4 @@ valid_codes_text.grid(row=1, column=1, padx=5)
 promo_checker = PromoCodeChecker()
 
 # تشغيل التطبيق
-root.mainloop
+root.mainloop()
