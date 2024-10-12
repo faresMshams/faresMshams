@@ -10,6 +10,8 @@ all copyrights to ghalwash
 غير مسموح بتداول البرنامج بيعه الخ...
 سيتم ايقاف البرنامج في حاله اكتشاف ذلك
 ''')
+input("Press any key to exit...")
+
 '''import requests
 import random
 import string
