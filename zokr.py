@@ -1,4 +1,16 @@
-import requests
+print('''
+hello
+this is talabat exe file to let u get voucher
+برنامج طلبات للقسايم تخمين
+البرنامج ب اشتراك تقدر تتواصل معايا ب يوزرنيم
+@Mrfa0gh
+لو حابب تشترك او تجربه
+all copyrights to ghalwash
+جميع الحقوق محفوظه لدي غلوش
+غير مسموح بتداول البرنامج بيعه الخ...
+سيتم ايقاف البرنامج في حاله اكتشاف ذلك
+''')
+'''import requests
 import random
 import string
 import time
@@ -261,4 +273,4 @@ valid_codes_text.grid(row=1, column=1, padx=5)
 promo_checker = PromoCodeChecker()
 
 # تشغيل التطبيق
-root.mainloop()
+root.mainloop'''
