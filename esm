@@ -1,0 +1,374 @@
+import requests
+import uuid
+import random
+import re
+import time
+from bs4 import BeautifulSoup
+
+def generate_random_hardware_id():
+    return ''.join(random.choices('0123456789abcdef', k=16))
+
+def generate_random_anon_id():
+    return str(uuid.uuid4())
+
+def generate_random_model():
+    models = ["M2007J17C", "M2101K9AG", "M2011K2C", "M2102J20SG"]
+    return random.choice(models)
+
+def generate_random_brand():
+    brands = ["XiaoMi", "Samsung", "Huawei", "OnePlus"]
+    return random.choice(brands)
+
+# Save eSIM data to a file
+def save_esim_data(email, password, matching_id, smdp_address):
+    with open("xesim2gb.txt", "a") as file:
+        file.write(f"https://mail10year.com/login/new.php?login={email}|{password}\n")
+        file.write(f"{matching_id}\n")
+        file.write(f"{smdp_address}\n")
+        file.write(f"LPA:1${smdp_address}${matching_id}\n")
+        file.write("--------------------------------------------------------------\n")
+
+# توليد قيم عشوائية ثابتة لاستخدامها في جميع الطلبات
+random_brand = generate_random_brand()
+random_model = generate_random_model()
+
+def create_email():
+    url = "https://mail10year.com/login/apireg.php"
+    try:
+        response = requests.get(url)
+        response.raise_for_status()
+        email_data = response.text.strip().split("|")
+        if len(email_data) == 2:
+            email, password = email_data
+            print(f"Created Email: {email}, Password: {password}")
+            return email, password
+        else:
+            #print("Failed to create email. Check API response.")
+            return None, None
+    except requests.RequestException as e:
+        #print(f"Error creating email: {e}")
+        return None, None
+
+# بيانات POST الأول
+hardware_id = generate_random_hardware_id()
+data_install = {
+    "hardware_id": hardware_id,
+    "is_hardware_id_real": True,
+    "anon_id": generate_random_anon_id(),
+    "brand": random_brand,
+    "model": random_model,
+    "screen_dpi": 480,
+    "screen_height": 1920,
+    "screen_width": 1080,
+    "wifi": True,
+    "ui_mode": "UI_MODE_TYPE_NORMAL",
+    "os": "Android",
+    "os_version": 32,
+    "plugin_name": "ReactNative",
+    "plugin_version": "6.2.2",
+    "country": "US",
+    "language": "en",
+    "local_ip": "10.1.10.1",
+    "cpu_type": "aarch64",
+    "build": "V417IR release-keys",
+    "locale": "en_US",
+    "connection_type": "wifi",
+    "device_carrier": "FarEasTone",
+    "os_version_android": "12",
+    "debug": False,
+    "partner_data": {},
+    "app_version": "1.32.2",
+    "initial_referrer": "android-app://com.mumu.launcher",
+    "update": 0,
+    "latest_install_time": 1736034127110,
+    "latest_update_time": 1736034127110,
+    "first_install_time": 1736034127110,
+    "previous_update_time": 0,
+    "environment": "FULL_APP",
+    "metadata": {},
+    "lat_val": 0,
+    "unidentified_device": True,
+    "sdk": "android5.12.1",
+    "branch_key": "key_live_jwbUfBlQycFDm6vUnX6W1pndrBfheew4",
+    "retryNumber": 0
+}
+
+# إرسال الطلب الأول
+url_install = "https://api2.branch.io/v1/install"
+headers_install = {
+    "Content-Type": "application/json",
+    "Accept": "application/json",
+    "User-Agent": "Dalvik/2.1.0 (Linux; U; Android 12; M2007J17C Build/V417IR)",
+    "Host": "api2.branch.io",
+    "Connection": "Keep-Alive",
+    "Accept-Encoding": "gzip"
+}
+
+response_install = requests.post(url_install, json=data_install, headers=headers_install)
+##print("Install API Response:", response_install.status_code, response_install.text)
+
+email, password = create_email()
+if email is None:
+    #print("Failed to create email. Exiting.")
+    exit()
+    
+# بيانات POST الثاني (طلب OTP)
+data_request_otp = {"email": email}
+url_request_otp = "https://api.kolet.com/auth/request-otp"
+headers_request_otp = {
+    "accept": "application/json, text/plain, */*",
+    "platform": "android",
+    "locale": "en-US",
+    "manufacturer": random_brand,
+    "model": random_model,
+    "version": "1.32.2",
+    "content-type": "application/json",
+    "accept-encoding": "gzip",
+    "user-agent": "okhttp/4.11.0"
+}
+
+response_request_otp = requests.post(url_request_otp, json=data_request_otp, headers=headers_request_otp)
+#print("Request OTP Response:", response_request_otp.status_code, response_request_otp.text)
+
+# استخراج OTP من البريد الإلكتروني
+def fetch_otp(email, password):
+    url = f"https://mail10year.com/login/new.php?login={email}|{password}"
+    try:
+        headers = {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36"
+        }
+        response = requests.get(url, headers=headers)
+        response.raise_for_status()
+
+        soup = BeautifulSoup(response.text, 'html.parser')
+
+        # البحث عن OTP باستخدام التعبير النمطي داخل النصوص
+        otp_match = re.search(r'\b\d{6}\b', soup.get_text())
+        if otp_match:
+            otp = otp_match.group(0)
+            #print(f"OTP found: {otp}")
+            return otp
+
+        # إذا لم يظهر في النصوص، البحث في الرسائل
+        messages = soup.find_all('div', class_='mail-message')  # تأكد من الكلاس المناسب
+        for message in messages:
+            otp_match = re.search(r'\b\d{6}\b', message.get_text())
+            if otp_match:
+                otp = otp_match.group(0)
+                #print(f"OTP found in message: {otp}")
+                return otp
+        return None
+    except requests.RequestException as e:
+        #print(f"Error fetching OTP: {e}")
+        return None
+
+
+# طلب OTP تلقائيًا
+otp = None
+#print('Retrying OTP fetch...')
+for _ in range(10):  # إعادة المحاولة 10 مرات
+    time.sleep(5)
+    otp = fetch_otp(email, password)
+    if otp:
+        break
+
+if otp is None:
+    #print("Failed to fetch OTP. Exiting.")
+    exit()
+# بيانات POST الثالث (تسجيل الدخول)
+data_login = {
+    "otp": otp,
+    "email": email,
+    "marketingConsent": True,
+    "deviceId": hardware_id
+}
+url_login = "https://api.kolet.com/auth/login"
+response_login = requests.post(url_login, json=data_login, headers=headers_request_otp)
+#print("Login API Response:", response_login.status_code, response_login.text)
+
+# استخراج وحفظ التوكن من الاستجابة
+if response_login.status_code in [200, 201]:
+    response_data = response_login.json()
+    token = response_data.get("token")
+    refresh_token = response_data.get("refreshToken")
+    #print("Token:", token)
+    #print("Refresh Token:", refresh_token)
+else:
+    #print("Failed to login.")
+    exit()
+
+# 1. GET /users/me
+url_users_me = "https://api.kolet.com/users/me"
+headers_users_me = {
+    "accept": "application/json, text/plain, */*",
+    "platform": "android",
+    "locale": "en-US",
+    "manufacturer": random_brand,
+    "model": random_model,
+    "version": "1.32.2",
+    "authorization": f"Bearer {token}",
+    "accept-encoding": "gzip",
+    "cookie": f"refreshToken={refresh_token}",
+    "user-agent": "okhttp/4.11.0",
+    "if-none-match": 'W/"321-2G76P6w0+yL4Hdfrcg2xMP6AN6U"'
+}
+
+response_users_me = requests.get(url_users_me, headers=headers_users_me)
+#print("Users Me API Response:", response_users_me.status_code, response_users_me.text)
+
+# 2. GET /user-vouchers
+url_user_vouchers = "https://api.kolet.com/user-vouchers"
+headers_user_vouchers = headers_users_me
+response_user_vouchers = requests.get(url_user_vouchers, headers=headers_user_vouchers)
+#print("User Vouchers API Response:", response_user_vouchers.status_code, response_user_vouchers.text)
+
+# استخراج `userVoucherId` من الـ response
+if response_user_vouchers.status_code == 200:
+    response_json = response_user_vouchers.json()
+    user_vouchers = response_json.get("userVouchers", [])
+    if user_vouchers:
+        userVoucherId = user_vouchers[0].get("id")  # استخراج أول ID
+        #print(f"userVoucherId: {userVoucherId}")
+    else:
+        #print("No user vouchers found.")
+        userVoucherId = None
+else:
+    #print("Failed to retrieve user vouchers.")
+    userVoucherId = None
+    
+# 3. POST /vouchers
+data_voucher = {"voucherCode": "CODEBREAKER"}
+url_vouchers = "https://api.kolet.com/vouchers"
+headers_vouchers = {
+    "accept": "application/json, text/plain, */*",
+    "platform": "android",
+    "locale": "en-US",
+    "manufacturer": random_brand,
+    "model": random_model,
+    "version": "1.32.2",
+    "authorization": f"Bearer {token}",
+    "content-type": "application/json",
+    "accept-encoding": "gzip",
+    "cookie": f"refreshToken={refresh_token}",
+    "user-agent": "okhttp/4.11.0"
+}
+
+# إرسال طلب لإضافة القسيمة
+response_vouchers = requests.post(url_vouchers, json=data_voucher, headers=headers_vouchers)
+#print("Vouchers API Response:", response_vouchers.status_code, response_vouchers.text)
+
+# إعادة إرسال طلب القسائم
+response_user_vouchers = requests.get(url_user_vouchers, headers=headers_user_vouchers)
+#print("User Vouchers API Response After Adding Voucher:", response_user_vouchers.status_code, response_user_vouchers.text)
+
+# استخراج `userVoucherId` من الاستجابة المحدثة
+if response_user_vouchers.status_code == 200:
+    response_json = response_user_vouchers.json()
+    user_vouchers = response_json.get("userVouchers", [])
+    if user_vouchers:
+        userVoucherId = user_vouchers[0].get("id")  # استخراج أول ID
+        #print(f"userVoucherId: {userVoucherId}")
+    else:
+        #print("No user vouchers found after adding voucher.")
+        userVoucherId = None
+else:
+    #print("Failed to retrieve updated user vouchers.")
+    userVoucherId = None
+
+# 4. GET /user-vouchers (again)
+response_user_vouchers = requests.get(url_user_vouchers, headers=headers_user_vouchers)
+#print("User Vouchers API Response After Voucher:", response_user_vouchers.status_code, response_user_vouchers.text)
+
+# 5. GET /plans
+url_plans = "https://api.kolet.com/plans"
+headers_plans = headers_users_me
+response_plans = requests.get(url_plans, headers=headers_plans)
+#print("Plans API Response:", response_plans.status_code, response_plans.text)
+
+# 6. POST /api/v1/customers/7b1960a5-0149-4cdd-8958-d8a3dfac5f2e/events
+url_event = "https://track-sdk-eu.customer.io/api/v1/customers/7b1960a5-0149-4cdd-8958-d8a3dfac5f2e/events"
+headers_event = {
+    "Host": "track-sdk-eu.customer.io",
+    "Authorization": "Basic Y2M1MmI2OWM4NzExYzgxZTI3Y2U6MmMyMTMzZmNhNWZmYTRlYjkyMDI=",
+    "User-Agent": f"Customer.io Expo Client/1.0.0-beta.15 ({random_brand} {random_model}; 32) com.ody.consumer.app/1.32.2",
+    "Content-Type": "application/json; charset=UTF-8",
+    "Accept-Encoding": "gzip"
+}
+
+data_event = {
+    "name": "ClaimGift",
+    "type": "screen",
+    "data": {},
+    "timestamp": 1736036522
+}
+
+response_event = requests.post(url_event, json=data_event, headers=headers_event)
+#print("Event API Response:", response_event.status_code, response_event.text)
+
+# 7. GET /user-vouchers (again)
+response_user_vouchers = requests.get(url_user_vouchers, headers=headers_user_vouchers)
+#print("User Vouchers API Response After Event:", response_user_vouchers.status_code, response_user_vouchers.text)
+
+# 8. GET /catalog/v2/zones
+url_zones = "https://api.kolet.com/catalog/v2/zones"
+response_zones = requests.get(url_zones, headers=headers_user_vouchers)
+
+# 9. POST /user-voucher/redeem
+data_redeem = {
+    "userVoucherId": userVoucherId,
+    "zone": "EGY",
+    "departureDate": "2025-01-06T00:24:00.000Z"
+}
+url_redeem = "https://api.kolet.com/user-voucher/redeem"
+response_redeem = requests.post(url_redeem, json=data_redeem, headers=headers_user_vouchers)
+#print("Redeem API Response:", response_redeem.status_code, response_redeem.text)
+
+# 10. GET /esims
+#print('now at 10')
+url_esims = "https://api.kolet.com/esims"
+headers_esims = {
+    "Host": "api.kolet.com",
+    "accept": "application/json, text/plain, */*",
+    "platform": "android",
+    "locale": "en-US",
+    "manufacturer": random_brand,
+    "model": random_model,
+    "version": "1.32.2",
+    "authorization": f"Bearer {token}",
+    "accept-encoding": "gzip",
+    "cookie": f"refreshToken={refresh_token}",
+    "user-agent": "okhttp/4.11.0"
+}
+
+response_esims = requests.get(url_esims, headers=headers_esims)
+
+# طباعة الاستجابة
+#print("eSIMs API Response:", response_esims.status_code, response_esims.text)
+
+# إذا كانت الاستجابة ناجحة، استخراج المعلومات المطلوبة
+if response_esims.status_code == 200:
+    response_json = response_esims.json()
+    esims = response_json.get("esims", [])
+    if esims:
+        matching_id = esims[0].get("matchingId")
+        smdp_address = esims[0].get("smdpAddress")
+        print('''
+esim created by ghalwash @Mrfa0gh
+
+
+ ██████  ██   ██  █████  ██      ██     ██  █████  ███████ ██   ██    
+██       ██   ██ ██   ██ ██      ██     ██ ██   ██ ██      ██   ██    
+██   ███ ███████ ███████ ██      ██  █  ██ ███████ ███████ ███████    
+██    ██ ██   ██ ██   ██ ██      ██ ███ ██ ██   ██      ██ ██   ██    
+ ██████  ██   ██ ██   ██ ███████  ███ ███  ██   ██ ███████ ██   ██                                                           
+                                                                      
+''')
+        
+        print(f"matchingId: {matching_id}")
+        print(f"smdpAddress: {smdp_address}")
+        print(f"LPA:1${smdp_address}${matching_id}")
+        save_esim_data(email, password, matching_id, smdp_address)
+    else:
+        print("No eSIM data found.")
+else:
+    print("Failed to retrieve eSIMs information.")
