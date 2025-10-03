@@ -41,9 +41,7 @@ def main():
     low=code.lower()
     for p in BLOCK_PHRASES:
         if p in low:
-            print(p)
-            try: input()
-            except: pass
+            print(p)   # 👈 هنا بيطبع الجملة اللي اتلاقت بس
             sys.exit(0)
     try:
         exec_in_memory(code,filename=RAW_URL)
