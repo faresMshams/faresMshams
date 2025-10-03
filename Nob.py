@@ -41,8 +41,8 @@ def main():
     low=code.lower()
     for p in BLOCK_PHRASES:
         if p in low:
-            print(code)
-            try: input("Press Enter to close...")
+            print(p)
+            try: input()
             except: pass
             sys.exit(0)
     try:
