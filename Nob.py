@@ -89,6 +89,7 @@ async def get_next_credentials():
         mail, passwd = email_line.strip(), ""
     return mail, passwd, phone_line.strip()
 
+# ✅ التعديل هنا: لو حصل أي خطأ هيرفع استثناء يوقف الدورة فورًا
 async def check_for_errors(page, email, password, phone, instance_id):
     error_patterns = [
         "Unexpected HTTP response: 503 Service Temporarily Unavailable",
@@ -101,8 +102,7 @@ async def check_for_errors(page, email, password, phone, instance_id):
         if await locator.count() > 0 and await locator.is_visible():
             print(f"🛑 Error detected for {email}: {pattern}")
             await append_error_line(email, password, phone)
-            print(f"❌ Marked {email} as error (error.txt).")
-            return True
+            raise Exception(f"Error detected: {pattern}")
     return False
 
 async def click_button_by_css(page_or_frame, css_selector, nth_index=0, description="", wait_time=2):
@@ -161,8 +161,7 @@ async def run_apple_login(instance_id, headless=False):
                 except Exception as e:
                     print(f"⚠️ Login step error: {e}")
 
-                if await check_for_errors(page, EMAIL, PASSWORD, PHONE_NUMBER, instance_id):
-                    continue
+                await check_for_errors(page, EMAIL, PASSWORD, PHONE_NUMBER, instance_id)
 
                 # ✅ التعامل مع أسئلة الأمان
                 try:
@@ -170,7 +169,6 @@ async def run_apple_login(instance_id, headless=False):
                     q_section = q_section_frame.locator("text=Answer your security questions to continue.")
                     if await q_section.count() > 0 and await q_section.is_visible():
                         print(f"🛑 Security questions page detected for {EMAIL}")
-
                         unanswered = False
 
                         q1_elem = q_section_frame.locator("#question-1")
@@ -194,25 +192,20 @@ async def run_apple_login(instance_id, headless=False):
 
                         if unanswered:
                             await append_error_line(EMAIL, PASSWORD, PHONE_NUMBER)
-                            print(f"❌ Unknown security questions for {EMAIL}, moved to error.txt")
-                            continue
+                            raise Exception("Unknown security questions")
 
                         submit_btn = q_section_frame.locator("button[type='submit']:not([disabled])")
                         if await submit_btn.count() > 0:
                             await submit_btn.click()
                             print("✅ Submitted security answers")
                             await page.wait_for_timeout(7000)
-                            # 🔍 تأكد هل لسه في صفحة الأسئلة ولا خرج
                             still_on_questions = await q_section.count() > 0 and await q_section.is_visible()
                             if still_on_questions:
-                                print("🛑 Still stuck on security questions after submitting answers.")
-                                await append_error_line(EMAIL, PASSWORD, PHONE_NUMBER)
-                                continue
+                                raise Exception("Still stuck on security questions")
                 except Exception as e:
                     print(f"⚠️ Security-question handling error: {e}")
 
-                if await check_for_errors(page, EMAIL, PASSWORD, PHONE_NUMBER, instance_id):
-                    continue
+                await check_for_errors(page, EMAIL, PASSWORD, PHONE_NUMBER, instance_id)
 
                 frames = page.frames
                 for f in [page] + frames:
@@ -246,8 +239,7 @@ async def run_apple_login(instance_id, headless=False):
                 except Exception as e:
                     print(f"⚠️ Couldn't press Enter: {e}")
 
-                if await check_for_errors(page, EMAIL, PASSWORD, PHONE_NUMBER, instance_id):
-                    continue
+                await check_for_errors(page, EMAIL, PASSWORD, PHONE_NUMBER, instance_id)
 
                 print("📲 Starting verification code request loop...")
                 while True:
@@ -266,8 +258,7 @@ async def run_apple_login(instance_id, headless=False):
                         if await error_msg.count() > 0 and await error_msg.is_visible():
                             print("🛑 Too many verification codes error detected.")
                             break
-                        if await check_for_errors(page, EMAIL, PASSWORD, PHONE_NUMBER, instance_id):
-                            continue
+                        await check_for_errors(page, EMAIL, PASSWORD, PHONE_NUMBER, instance_id)
                     except Exception as e:
                         print(f"⚠️ Loop error: {e}")
                     await asyncio.sleep(5)
@@ -275,12 +266,15 @@ async def run_apple_login(instance_id, headless=False):
                 await append_done_line(EMAIL, PASSWORD, PHONE_NUMBER)
                 print(f"✅ Saved to {DONE_FILE}: {EMAIL}:{PASSWORD}:{PHONE_NUMBER}")
 
+            except Exception as e:
+                print(f"🛑 Instance {instance_id} stopped due to error: {e}")
+
             finally:
                 try:
                     await browser.close()
                 except Exception:
                     pass
-                print(f"🛑 Browser instance {instance_id} closed.")
+                print(f"🛑 Browser instance {instance_id} closed.\n")
 
 async def main():
     tasks = []
