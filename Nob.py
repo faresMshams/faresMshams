@@ -1,3 +1,4 @@
+#12 update
 import asyncio, time, re, yaml
 from playwright.async_api import async_playwright
 from colorama import init, Fore, Style
@@ -89,7 +90,7 @@ async def get_next_credentials():
         mail, passwd = email_line.strip(), ""
     return mail, passwd, phone_line.strip()
 
-# ✅ التعديل هنا: لو حصل أي خطأ هيرفع استثناء يوقف الدورة فورًا
+# الآن: لو لقى نمط خطأ في الصفحة -> يحفظ و يرمي Exception فوراً
 async def check_for_errors(page, email, password, phone, instance_id):
     error_patterns = [
         "Unexpected HTTP response: 503 Service Temporarily Unavailable",
@@ -98,14 +99,21 @@ async def check_for_errors(page, email, password, phone, instance_id):
         "-24054"
     ]
     for pattern in error_patterns:
-        locator = page.locator(f"text={pattern}")
-        if await locator.count() > 0 and await locator.is_visible():
-            print(f"🛑 Error detected for {email}: {pattern}")
-            await append_error_line(email, password, phone)
-            raise Exception(f"Error detected: {pattern}")
-    return False
+        try:
+            locator = page.locator(f"text={pattern}")
+            if await locator.count() > 0 and await locator.is_visible():
+                print(f"🛑 Error detected for {email}: {pattern}")
+                await append_error_line(email, password, phone)
+                raise Exception(f"Error detected: {pattern}")
+        except Exception as e:
+            # إذا كان هذا exception من append_error_line أو انتظار locator، أعد رفعه كـ خطأ حاسم
+            if isinstance(e, Exception) and "Error detected" in str(e):
+                raise
+            # وإلا تجاوز (أو أعد رفع) حسب الموقف
+            raise
 
-async def click_button_by_css(page_or_frame, css_selector, nth_index=0, description="", wait_time=2):
+# دوال click/fill/select معدلة لتتعامل كـ critical و ترمي Exception بعد الحفظ
+async def click_button_by_css(page_or_frame, css_selector, nth_index=0, description="", wait_time=2, email=None, password=None, phone=None):
     try:
         button = page_or_frame.locator(css_selector).nth(nth_index)
         await button.wait_for(state="visible", timeout=15000)
@@ -113,9 +121,13 @@ async def click_button_by_css(page_or_frame, css_selector, nth_index=0, descript
         print(f"✅ Clicked {description}")
         await asyncio.sleep(wait_time)
     except Exception as e:
-        print(f"⚠️ Failed to click {description}: {e}")
+        print(f"🛑 Critical: Failed to click {description}: {e}")
+        if email:
+            await append_error_line(email, password, phone)
+            print(f"❌ Added to error.txt: {email}:{password}:{phone}")
+        raise Exception(f"Failed critical step: click {description}")
 
-async def fill_by_css(page_or_frame, css_selector, text, description="", wait_time=1):
+async def fill_by_css(page_or_frame, css_selector, text, description="", wait_time=1, email=None, password=None, phone=None):
     try:
         elem = page_or_frame.locator(css_selector)
         await elem.wait_for(state="visible", timeout=15000)
@@ -123,9 +135,13 @@ async def fill_by_css(page_or_frame, css_selector, text, description="", wait_ti
         print(f"✅ Filled {description} with '{text}'")
         await asyncio.sleep(wait_time)
     except Exception as e:
-        print(f"⚠️ Failed to fill {description}: {e}")
+        print(f"🛑 Critical: Failed to fill {description}: {e}")
+        if email:
+            await append_error_line(email, password, phone)
+            print(f"❌ Added to error.txt: {email}:{password}:{phone}")
+        raise Exception(f"Failed critical step: fill {description}")
 
-async def select_country(page_or_frame, dropdown_css, value="VN"):
+async def select_country(page_or_frame, dropdown_css, value="VN", email=None, password=None, phone=None):
     try:
         dropdown = page_or_frame.locator(dropdown_css)
         await dropdown.wait_for(state="visible", timeout=15000)
@@ -133,7 +149,11 @@ async def select_country(page_or_frame, dropdown_css, value="VN"):
         print(f"✅ Selected country (value={value}) from dropdown")
         await asyncio.sleep(1)
     except Exception as e:
-        print(f"⚠️ Failed to select country: {e}")
+        print(f"🛑 Critical: Failed to select country: {e}")
+        if email:
+            await append_error_line(email, password, phone)
+            print(f"❌ Added to error.txt: {email}:{password}:{phone}")
+        raise Exception("Failed critical step: select country")
 
 async def run_apple_login(instance_id, headless=False):
     while True:
@@ -159,11 +179,15 @@ async def run_apple_login(instance_id, headless=False):
                     await login_frame.locator("#sign-in").click()
                     await page.wait_for_timeout(2000)
                 except Exception as e:
-                    print(f"⚠️ Login step error: {e}")
+                    # لو فشل login خطوة حساسة -> اعتبرها خطأ قاتل
+                    print(f"🛑 Login step error: {e}")
+                    await append_error_line(EMAIL, PASSWORD, PHONE_NUMBER)
+                    raise Exception("Critical: login step failed")
 
+                # فحص فوري للأخطاء النصية على الصفحة
                 await check_for_errors(page, EMAIL, PASSWORD, PHONE_NUMBER, instance_id)
 
-                # ✅ التعامل مع أسئلة الأمان
+                # التعامل مع أسئلة الأمان
                 try:
                     q_section_frame = page.frame_locator("iframe[src*='appleauth/auth/authorize/signin']")
                     q_section = q_section_frame.locator("text=Answer your security questions to continue.")
@@ -192,7 +216,7 @@ async def run_apple_login(instance_id, headless=False):
 
                         if unanswered:
                             await append_error_line(EMAIL, PASSWORD, PHONE_NUMBER)
-                            raise Exception("Unknown security questions")
+                            raise Exception("Critical: Unknown security questions")
 
                         submit_btn = q_section_frame.locator("button[type='submit']:not([disabled])")
                         if await submit_btn.count() > 0:
@@ -201,9 +225,12 @@ async def run_apple_login(instance_id, headless=False):
                             await page.wait_for_timeout(7000)
                             still_on_questions = await q_section.count() > 0 and await q_section.is_visible()
                             if still_on_questions:
-                                raise Exception("Still stuck on security questions")
+                                await append_error_line(EMAIL, PASSWORD, PHONE_NUMBER)
+                                raise Exception("Critical: Still stuck on security questions")
                 except Exception as e:
+                    # رفع الاستثناء ليتم التقاطه في except العام أسفل
                     print(f"⚠️ Security-question handling error: {e}")
+                    raise
 
                 await check_for_errors(page, EMAIL, PASSWORD, PHONE_NUMBER, instance_id)
 
@@ -226,10 +253,11 @@ async def run_apple_login(instance_id, headless=False):
                     except:
                         continue
 
-                await click_button_by_css(page, "button.button-bare.button-expand.button-rounded-rectangle", 2, "Account Security")
-                await click_button_by_css(page, "button.button-secondary.button-rounded-rectangle", 1, "Second option after Account Security")
-                await select_country(page, "select.form-dropdown-select", COUNTRY)
-                await fill_by_css(page, "input.form-textbox-input.form-textbox-input-ltr", PHONE_NUMBER, "phone number textbox")
+                # الآن: أي فشل هنا سيحفظ الحساب في error.txt ويقفل الـ instance
+                await click_button_by_css(page, "button.button-bare.button-expand.button-rounded-rectangle", 2, "Account Security", email=EMAIL, password=PASSWORD, phone=PHONE_NUMBER)
+                await click_button_by_css(page, "button.button-secondary.button-rounded-rectangle", 1, "Second option after Account Security", email=EMAIL, password=PASSWORD, phone=PHONE_NUMBER)
+                await select_country(page, "select.form-dropdown-select", COUNTRY, email=EMAIL, password=PASSWORD, phone=PHONE_NUMBER)
+                await fill_by_css(page, "input.form-textbox-input.form-textbox-input-ltr", PHONE_NUMBER, "phone number textbox", email=EMAIL, password=PASSWORD, phone=PHONE_NUMBER)
 
                 phone_input = page.locator("input.form-textbox-input.form-textbox-input-ltr")
                 try:
@@ -237,7 +265,9 @@ async def run_apple_login(instance_id, headless=False):
                     print("✅ Pressed Enter to submit the phone number")
                     await asyncio.sleep(2)
                 except Exception as e:
-                    print(f"⚠️ Couldn't press Enter: {e}")
+                    print(f"🛑 Couldn't press Enter: {e}")
+                    await append_error_line(EMAIL, PASSWORD, PHONE_NUMBER)
+                    raise Exception("Critical: couldn't press Enter on phone input")
 
                 await check_for_errors(page, EMAIL, PASSWORD, PHONE_NUMBER, instance_id)
 
@@ -257,16 +287,25 @@ async def run_apple_login(instance_id, headless=False):
                         error_msg = page.locator("text=Too many verification codes have been sent")
                         if await error_msg.count() > 0 and await error_msg.is_visible():
                             print("🛑 Too many verification codes error detected.")
+                            await append_error_line(EMAIL, PASSWORD, PHONE_NUMBER)
                             break
                         await check_for_errors(page, EMAIL, PASSWORD, PHONE_NUMBER, instance_id)
                     except Exception as e:
                         print(f"⚠️ Loop error: {e}")
+                        # لو الخطأ داخل اللوب من النوع الحاسم نرميه للخارج ليغلق الـ browser
+                        raise
                     await asyncio.sleep(5)
 
                 await append_done_line(EMAIL, PASSWORD, PHONE_NUMBER)
                 print(f"✅ Saved to {DONE_FILE}: {EMAIL}:{PASSWORD}:{PHONE_NUMBER}")
 
             except Exception as e:
+                # أي استثناء هنا يعني فشل حاسم للـ instance — نضمن الحفظ لو ما تقمّش بالفعل
+                try:
+                    # محاولة لضمان أن الحساب محفوظ في error.txt
+                    await append_error_line(EMAIL, PASSWORD, PHONE_NUMBER)
+                except:
+                    pass
                 print(f"🛑 Instance {instance_id} stopped due to error: {e}")
 
             finally:
