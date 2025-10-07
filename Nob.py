@@ -1,3 +1,4 @@
+#no proxy
 import asyncio, time, yaml
 from playwright.async_api import async_playwright
 from colorama import init, Fore, Style
