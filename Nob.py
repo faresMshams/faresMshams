@@ -1,4 +1,3 @@
-#12 update
 import asyncio, time, re, yaml
 from playwright.async_api import async_playwright
 from colorama import init, Fore, Style
@@ -62,17 +61,17 @@ async def push_line_to_file(path, line):
         with open(path, "a", encoding="utf-8") as f:
             f.write(line.rstrip("\n") + "\n")
 
-async def append_done_line(mail, passwd, phone):
-    line = f"{mail}:{passwd}:{phone}"
+async def append_done_line(mail, passwd, phone, proxy_line=None):
+    line = f"{mail}:{passwd}:{phone}:{proxy_line or ''}"
     await push_line_to_file(DONE_FILE, line)
 
-async def append_error_line(email, password, phone):
-    line = f"{email}:{password}:{phone}\n"
+async def append_error_line(email, password, phone, proxy_line=None):
+    line = f"{email}:{password}:{phone}:{proxy_line or ''}\n"
     async with file_lock:
         with open("error.txt", "a", encoding="utf-8") as f:
             f.write(line)
             f.flush()
-    print(f"❌ Saved to error.txt: {email}:{password}:{phone}")
+    print(f"❌ Saved to error.txt: {email}:{password}:{phone}:{proxy_line or ''}")
 
 async def get_next_credentials():
     email_line = await pop_line_from_file(EMAILS_FILE)
@@ -84,14 +83,46 @@ async def get_next_credentials():
             with open(EMAILS_FILE, "a", encoding="utf-8") as f:
                 f.write(email_line + "\n")
         return None
+    # pop a proxy line if exists (optional)
+    proxy_line = await pop_line_from_file(PROXIES_FILE)
     if ',' in email_line:
         mail, passwd = [p.strip() for p in email_line.split(",", 1)]
     else:
         mail, passwd = email_line.strip(), ""
-    return mail, passwd, phone_line.strip()
+    return mail, passwd, phone_line.strip(), (proxy_line or "").strip() if proxy_line else None
+
+def parse_proxy_for_playwright(proxy_line):
+    """
+    Accepts proxy_line like:
+      - user:pass@ip:port
+      - ip:port
+      - http://user:pass@ip:port
+    Returns dict suitable for playwright.launch(proxy={...}) or None
+    """
+    if not proxy_line:
+        return None
+    pl = proxy_line.strip()
+    # strip scheme if present
+    if pl.startswith("http://") or pl.startswith("https://"):
+        pl = pl.split("://", 1)[1]
+    username = None
+    password = None
+    host_port = pl
+    if "@" in pl:
+        auth, host_port = pl.rsplit("@", 1)
+        if ":" in auth:
+            username, password = auth.split(":", 1)
+        else:
+            username = auth
+    proxy_dict = {"server": f"http://{host_port}"}
+    if username:
+        proxy_dict["username"] = username
+    if password:
+        proxy_dict["password"] = password
+    return proxy_dict
 
 # الآن: لو لقى نمط خطأ في الصفحة -> يحفظ و يرمي Exception فوراً
-async def check_for_errors(page, email, password, phone, instance_id):
+async def check_for_errors(page, email, password, phone, instance_id, proxy_line=None):
     error_patterns = [
         "Unexpected HTTP response: 503 Service Temporarily Unavailable",
         "Temporarily Unavailable",
@@ -102,18 +133,16 @@ async def check_for_errors(page, email, password, phone, instance_id):
         try:
             locator = page.locator(f"text={pattern}")
             if await locator.count() > 0 and await locator.is_visible():
-                print(f"🛑 Error detected for {email}: {pattern}")
-                await append_error_line(email, password, phone)
+                print(f"🛑 Error detected for {email}: {pattern} (proxy: {proxy_line or 'none'})")
+                await append_error_line(email, password, phone, proxy_line)
                 raise Exception(f"Error detected: {pattern}")
         except Exception as e:
-            # إذا كان هذا exception من append_error_line أو انتظار locator، أعد رفعه كـ خطأ حاسم
             if isinstance(e, Exception) and "Error detected" in str(e):
                 raise
-            # وإلا تجاوز (أو أعد رفع) حسب الموقف
             raise
 
 # دوال click/fill/select معدلة لتتعامل كـ critical و ترمي Exception بعد الحفظ
-async def click_button_by_css(page_or_frame, css_selector, nth_index=0, description="", wait_time=2, email=None, password=None, phone=None):
+async def click_button_by_css(page_or_frame, css_selector, nth_index=0, description="", wait_time=2, email=None, password=None, phone=None, proxy_line=None):
     try:
         button = page_or_frame.locator(css_selector).nth(nth_index)
         await button.wait_for(state="visible", timeout=15000)
@@ -123,11 +152,11 @@ async def click_button_by_css(page_or_frame, css_selector, nth_index=0, descript
     except Exception as e:
         print(f"🛑 Critical: Failed to click {description}: {e}")
         if email:
-            await append_error_line(email, password, phone)
-            print(f"❌ Added to error.txt: {email}:{password}:{phone}")
+            await append_error_line(email, password, phone, proxy_line)
+            print(f"❌ Added to error.txt: {email}:{password}:{phone}:{proxy_line or ''}")
         raise Exception(f"Failed critical step: click {description}")
 
-async def fill_by_css(page_or_frame, css_selector, text, description="", wait_time=1, email=None, password=None, phone=None):
+async def fill_by_css(page_or_frame, css_selector, text, description="", wait_time=1, email=None, password=None, phone=None, proxy_line=None):
     try:
         elem = page_or_frame.locator(css_selector)
         await elem.wait_for(state="visible", timeout=15000)
@@ -137,11 +166,11 @@ async def fill_by_css(page_or_frame, css_selector, text, description="", wait_ti
     except Exception as e:
         print(f"🛑 Critical: Failed to fill {description}: {e}")
         if email:
-            await append_error_line(email, password, phone)
-            print(f"❌ Added to error.txt: {email}:{password}:{phone}")
+            await append_error_line(email, password, phone, proxy_line)
+            print(f"❌ Added to error.txt: {email}:{password}:{phone}:{proxy_line or ''}")
         raise Exception(f"Failed critical step: fill {description}")
 
-async def select_country(page_or_frame, dropdown_css, value="VN", email=None, password=None, phone=None):
+async def select_country(page_or_frame, dropdown_css, value="VN", email=None, password=None, phone=None, proxy_line=None):
     try:
         dropdown = page_or_frame.locator(dropdown_css)
         await dropdown.wait_for(state="visible", timeout=15000)
@@ -151,8 +180,8 @@ async def select_country(page_or_frame, dropdown_css, value="VN", email=None, pa
     except Exception as e:
         print(f"🛑 Critical: Failed to select country: {e}")
         if email:
-            await append_error_line(email, password, phone)
-            print(f"❌ Added to error.txt: {email}:{password}:{phone}")
+            await append_error_line(email, password, phone, proxy_line)
+            print(f"❌ Added to error.txt: {email}:{password}:{phone}:{proxy_line or ''}")
         raise Exception("Failed critical step: select country")
 
 async def run_apple_login(instance_id, headless=False):
@@ -161,10 +190,20 @@ async def run_apple_login(instance_id, headless=False):
         if creds is None:
             print(f"❌ No credentials/phone available for instance {instance_id}.")
             return
-        EMAIL, PASSWORD, PHONE_NUMBER = creds
-        print(f"🚀 Instance {instance_id} will use: {EMAIL} | {PHONE_NUMBER}")
+        EMAIL, PASSWORD, PHONE_NUMBER, PROXY_LINE = creds
+        print(f"🚀 Instance {instance_id} will use: {EMAIL} | {PHONE_NUMBER} | proxy: {PROXY_LINE or 'none'}")
         async with async_playwright() as p:
-            browser = await p.chromium.launch(headless=headless)
+            proxy_launch = parse_proxy_for_playwright(PROXY_LINE)
+            try:
+                if proxy_launch:
+                    browser = await p.chromium.launch(headless=headless, proxy=proxy_launch)
+                else:
+                    browser = await p.chromium.launch(headless=headless)
+            except Exception as e:
+                print(f"🛑 Failed to launch browser for {EMAIL} with proxy {PROXY_LINE}: {e}")
+                await append_error_line(EMAIL, PASSWORD, PHONE_NUMBER, PROXY_LINE)
+                continue
+
             context = await browser.new_context()
             page = await context.new_page()
             try:
@@ -179,13 +218,12 @@ async def run_apple_login(instance_id, headless=False):
                     await login_frame.locator("#sign-in").click()
                     await page.wait_for_timeout(2000)
                 except Exception as e:
-                    # لو فشل login خطوة حساسة -> اعتبرها خطأ قاتل
                     print(f"🛑 Login step error: {e}")
-                    await append_error_line(EMAIL, PASSWORD, PHONE_NUMBER)
+                    await append_error_line(EMAIL, PASSWORD, PHONE_NUMBER, PROXY_LINE)
                     raise Exception("Critical: login step failed")
 
                 # فحص فوري للأخطاء النصية على الصفحة
-                await check_for_errors(page, EMAIL, PASSWORD, PHONE_NUMBER, instance_id)
+                await check_for_errors(page, EMAIL, PASSWORD, PHONE_NUMBER, instance_id, proxy_line=PROXY_LINE)
 
                 # التعامل مع أسئلة الأمان
                 try:
@@ -215,7 +253,7 @@ async def run_apple_login(instance_id, headless=False):
                                 unanswered = True
 
                         if unanswered:
-                            await append_error_line(EMAIL, PASSWORD, PHONE_NUMBER)
+                            await append_error_line(EMAIL, PASSWORD, PHONE_NUMBER, PROXY_LINE)
                             raise Exception("Critical: Unknown security questions")
 
                         submit_btn = q_section_frame.locator("button[type='submit']:not([disabled])")
@@ -225,14 +263,13 @@ async def run_apple_login(instance_id, headless=False):
                             await page.wait_for_timeout(7000)
                             still_on_questions = await q_section.count() > 0 and await q_section.is_visible()
                             if still_on_questions:
-                                await append_error_line(EMAIL, PASSWORD, PHONE_NUMBER)
+                                await append_error_line(EMAIL, PASSWORD, PHONE_NUMBER, PROXY_LINE)
                                 raise Exception("Critical: Still stuck on security questions")
                 except Exception as e:
-                    # رفع الاستثناء ليتم التقاطه في except العام أسفل
                     print(f"⚠️ Security-question handling error: {e}")
                     raise
 
-                await check_for_errors(page, EMAIL, PASSWORD, PHONE_NUMBER, instance_id)
+                await check_for_errors(page, EMAIL, PASSWORD, PHONE_NUMBER, instance_id, proxy_line=PROXY_LINE)
 
                 frames = page.frames
                 for f in [page] + frames:
@@ -254,10 +291,10 @@ async def run_apple_login(instance_id, headless=False):
                         continue
 
                 # الآن: أي فشل هنا سيحفظ الحساب في error.txt ويقفل الـ instance
-                await click_button_by_css(page, "button.button-bare.button-expand.button-rounded-rectangle", 2, "Account Security", email=EMAIL, password=PASSWORD, phone=PHONE_NUMBER)
-                await click_button_by_css(page, "button.button-secondary.button-rounded-rectangle", 1, "Second option after Account Security", email=EMAIL, password=PASSWORD, phone=PHONE_NUMBER)
-                await select_country(page, "select.form-dropdown-select", COUNTRY, email=EMAIL, password=PASSWORD, phone=PHONE_NUMBER)
-                await fill_by_css(page, "input.form-textbox-input.form-textbox-input-ltr", PHONE_NUMBER, "phone number textbox", email=EMAIL, password=PASSWORD, phone=PHONE_NUMBER)
+                await click_button_by_css(page, "button.button-bare.button-expand.button-rounded-rectangle", 2, "Account Security", email=EMAIL, password=PASSWORD, phone=PHONE_NUMBER, proxy_line=PROXY_LINE)
+                await click_button_by_css(page, "button.button-secondary.button-rounded-rectangle", 1, "Second option after Account Security", email=EMAIL, password=PASSWORD, phone=PHONE_NUMBER, proxy_line=PROXY_LINE)
+                await select_country(page, "select.form-dropdown-select", COUNTRY, email=EMAIL, password=PASSWORD, phone=PHONE_NUMBER, proxy_line=PROXY_LINE)
+                await fill_by_css(page, "input.form-textbox-input.form-textbox-input-ltr", PHONE_NUMBER, "phone number textbox", email=EMAIL, password=PASSWORD, phone=PHONE_NUMBER, proxy_line=PROXY_LINE)
 
                 phone_input = page.locator("input.form-textbox-input.form-textbox-input-ltr")
                 try:
@@ -266,10 +303,10 @@ async def run_apple_login(instance_id, headless=False):
                     await asyncio.sleep(2)
                 except Exception as e:
                     print(f"🛑 Couldn't press Enter: {e}")
-                    await append_error_line(EMAIL, PASSWORD, PHONE_NUMBER)
+                    await append_error_line(EMAIL, PASSWORD, PHONE_NUMBER, PROXY_LINE)
                     raise Exception("Critical: couldn't press Enter on phone input")
 
-                await check_for_errors(page, EMAIL, PASSWORD, PHONE_NUMBER, instance_id)
+                await check_for_errors(page, EMAIL, PASSWORD, PHONE_NUMBER, instance_id, proxy_line=PROXY_LINE)
 
                 print("📲 Starting verification code request loop...")
                 while True:
@@ -287,23 +324,20 @@ async def run_apple_login(instance_id, headless=False):
                         error_msg = page.locator("text=Too many verification codes have been sent")
                         if await error_msg.count() > 0 and await error_msg.is_visible():
                             print("🛑 Too many verification codes error detected.")
-                            await append_error_line(EMAIL, PASSWORD, PHONE_NUMBER)
+                            await append_error_line(EMAIL, PASSWORD, PHONE_NUMBER, PROXY_LINE)
                             break
-                        await check_for_errors(page, EMAIL, PASSWORD, PHONE_NUMBER, instance_id)
+                        await check_for_errors(page, EMAIL, PASSWORD, PHONE_NUMBER, instance_id, proxy_line=PROXY_LINE)
                     except Exception as e:
                         print(f"⚠️ Loop error: {e}")
-                        # لو الخطأ داخل اللوب من النوع الحاسم نرميه للخارج ليغلق الـ browser
                         raise
                     await asyncio.sleep(5)
 
-                await append_done_line(EMAIL, PASSWORD, PHONE_NUMBER)
-                print(f"✅ Saved to {DONE_FILE}: {EMAIL}:{PASSWORD}:{PHONE_NUMBER}")
+                await append_done_line(EMAIL, PASSWORD, PHONE_NUMBER, PROXY_LINE)
+                print(f"✅ Saved to {DONE_FILE}: {EMAIL}:{PASSWORD}:{PHONE_NUMBER}:{PROXY_LINE or ''}")
 
             except Exception as e:
-                # أي استثناء هنا يعني فشل حاسم للـ instance — نضمن الحفظ لو ما تقمّش بالفعل
                 try:
-                    # محاولة لضمان أن الحساب محفوظ في error.txt
-                    await append_error_line(EMAIL, PASSWORD, PHONE_NUMBER)
+                    await append_error_line(EMAIL, PASSWORD, PHONE_NUMBER, PROXY_LINE)
                 except:
                     pass
                 print(f"🛑 Instance {instance_id} stopped due to error: {e}")
